@@ -1,12 +1,53 @@
+//! Serialization functionality for DataValue
+//!
+//! This module provides serialization capabilities for DataValue, allowing conversion
+//! to JSON strings and integration with serde's serialization system.
+
 use crate::datavalue::{DataValue, Number};
 use crate::error::{Error, Result};
 use serde::ser::{Serialize, SerializeMap, SerializeSeq, Serializer};
 
-// Standalone functions similar to serde_json
+/// Converts a DataValue to a JSON string
+///
+/// This produces a compact representation without extra whitespace.
+///
+/// # Example
+///
+/// ```
+/// # use datavalue_rs::{DataValue, Bump, helpers};
+/// # let arena = Bump::new();
+/// let obj = helpers::object(&arena, vec![
+///     (arena.alloc_str("name"), helpers::string(&arena, "John")),
+///     (arena.alloc_str("age"), helpers::int(30)),
+/// ]);
+///
+/// let json = datavalue_rs::to_string(&obj);
+/// assert_eq!(json, r#"{"name":"John","age":30}"#);
+/// ```
 pub fn to_string(value: &DataValue<'_>) -> String {
     format!("{}", value)
 }
 
+/// Converts a DataValue to a pretty-printed JSON string
+///
+/// This produces a formatted representation with indentation and line breaks
+/// for improved readability.
+///
+/// # Example
+///
+/// ```
+/// # use datavalue_rs::{DataValue, Bump, helpers, to_string_pretty};
+/// # let arena = Bump::new();
+/// let obj = helpers::object(&arena, vec![
+///     (arena.alloc_str("name"), helpers::string(&arena, "John")),
+///     (arena.alloc_str("age"), helpers::int(30)),
+/// ]);
+///
+/// let json = to_string_pretty(&obj);
+/// // Result will include indentation and line breaks
+/// assert!(json.contains("{\n"));
+/// assert!(json.contains("  \"name\""));
+/// ```
 pub fn to_string_pretty(value: &DataValue<'_>) -> String {
     // A simple pretty-printing implementation
     let mut result = String::new();
@@ -14,6 +55,9 @@ pub fn to_string_pretty(value: &DataValue<'_>) -> String {
     result
 }
 
+/// Internal helper function for pretty-printing
+///
+/// Recursively formats the DataValue with proper indentation.
 fn to_string_pretty_internal(value: &DataValue<'_>, indent: usize, output: &mut String) {
     let indent_str = "  ".repeat(indent);
 
@@ -69,7 +113,9 @@ fn to_string_pretty_internal(value: &DataValue<'_>, indent: usize, output: &mut 
     }
 }
 
-// Implement Serialize for DataValue to allow using serde's serialization
+/// Implementation of serde's Serialize trait for DataValue
+///
+/// This allows DataValue to be used with serde's serialization framework.
 impl Serialize for DataValue<'_> {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
@@ -102,12 +148,24 @@ impl Serialize for DataValue<'_> {
 // Additional functions to write to writers
 impl DataValue<'_> {
     /// Serialize to a writer
+    ///
+    /// Writes the compact JSON representation of this value to the given writer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing to the writer fails.
     pub fn to_writer<W: std::io::Write>(&self, mut writer: W) -> Result<()> {
         let s = format!("{}", self);
         writer.write_all(s.as_bytes()).map_err(Error::from)
     }
 
     /// Serialize to a writer with pretty-printing
+    ///
+    /// Writes the pretty-printed JSON representation of this value to the given writer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing to the writer fails.
     pub fn to_writer_pretty<W: std::io::Write>(&self, mut writer: W) -> Result<()> {
         let s = to_string_pretty(self);
         writer.write_all(s.as_bytes()).map_err(Error::from)

@@ -10,14 +10,14 @@ fi
 echo "Generating benchmark summary..."
 
 # Create the summary markdown file
-cat > scripts/summary.md << 'EOL'
+cat > scripts/summary.md << EOL
 # DataValue vs serde_json::Value Benchmark Summary
 
 Generated on: $(date)
 
 ## Results
 
-Below is a comparison of performance between `DataValue` and `serde_json::Value` for various operations.
+Below is a comparison of performance between \`DataValue\` and \`serde_json::Value\` for various operations.
 
 | Operation | serde_json::Value (ns) | DataValue (ns) | Improvement |
 |-----------|------------------------|----------------|-------------|
@@ -32,7 +32,7 @@ while IFS=, read -r operation serde_time data_time; do
     
     # Calculate improvement percentage
     if (( $(echo "$serde_time > 0" | bc -l) )); then
-        improvement=$(echo "scale=4; (($serde_time - $data_time) / $serde_time) * 100" | bc)
+        improvement=$(echo "scale=2; (($serde_time - $data_time) / $serde_time) * 100" | bc)
         improvement="${improvement}%"
     else
         improvement="N/A"

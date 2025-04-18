@@ -1,46 +1,216 @@
 //! Utility functions for creating DataValue instances
+//!
+//! This module provides convenient functions for creating DataValue instances of
+//! different types. These functions are similar to the constructor functions
+//! in serde_json, but adapted for arena-based allocation where needed.
+//!
+//! The functions can be divided into two categories:
+//! - Simple value constructors (`null()`, `boolean()`, `int()`, `float()`) that don't require an arena
+//! - Complex value constructors (`string()`, `array()`, `object()`) that require an arena allocator
 
 use crate::datavalue::{DataValue, Number};
 use bumpalo::Bump;
 
 /// Creates a null DataValue
+///
+/// # Returns
+///
+/// A DataValue representing JSON null.
+///
+/// # Example
+///
+/// ```
+/// # use datavalue_rs::helpers;
+/// let null_value = helpers::null();
+/// assert!(null_value.is_null());
+/// ```
 #[inline]
 pub fn null() -> DataValue<'static> {
     DataValue::Null
 }
 
 /// Creates a boolean DataValue
+///
+/// # Arguments
+///
+/// * `value` - The boolean value to wrap
+///
+/// # Returns
+///
+/// A DataValue representing a JSON boolean value.
+///
+/// # Example
+///
+/// ```
+/// # use datavalue_rs::helpers;
+/// let true_value = helpers::boolean(true);
+/// assert_eq!(true_value.as_bool(), Some(true));
+///
+/// let false_value = helpers::boolean(false);
+/// assert_eq!(false_value.as_bool(), Some(false));
+/// ```
 #[inline]
 pub fn boolean(value: bool) -> DataValue<'static> {
     DataValue::Bool(value)
 }
 
 /// Creates an integer DataValue
+///
+/// # Arguments
+///
+/// * `value` - The integer value to wrap
+///
+/// # Returns
+///
+/// A DataValue representing a JSON number with integer value.
+///
+/// # Example
+///
+/// ```
+/// # use datavalue_rs::helpers;
+/// let int_value = helpers::int(42);
+/// assert_eq!(int_value.as_i64(), Some(42));
+/// assert_eq!(int_value.as_f64(), Some(42.0)); // Also accessible as float
+/// ```
 #[inline]
 pub fn int(value: i64) -> DataValue<'static> {
     DataValue::Number(Number::Integer(value))
 }
 
 /// Creates a float DataValue
+///
+/// # Arguments
+///
+/// * `value` - The floating point value to wrap
+///
+/// # Returns
+///
+/// A DataValue representing a JSON number with floating point value.
+///
+/// # Example
+///
+/// ```
+/// # use datavalue_rs::helpers;
+/// let float_value = helpers::float(3.14);
+/// assert_eq!(float_value.as_f64(), Some(3.14));
+/// assert_eq!(float_value.as_i64(), None); // Not accessible as integer
+/// ```
 #[inline]
 pub fn float(value: f64) -> DataValue<'static> {
     DataValue::Number(Number::Float(value))
 }
 
-/// Creates a string DataValue (requires an arena)
+/// Creates a string DataValue
+///
+/// This function allocates the string in the provided arena and returns
+/// a DataValue that references this string.
+///
+/// # Arguments
+///
+/// * `arena` - The arena allocator to store the string
+/// * `value` - The string value to wrap
+///
+/// # Returns
+///
+/// A DataValue representing a JSON string.
+///
+/// # Example
+///
+/// ```
+/// # use datavalue_rs::{helpers, Bump};
+/// let arena = Bump::new();
+/// let str_value = helpers::string(&arena, "hello world");
+/// assert_eq!(str_value.as_str(), Some("hello world"));
+/// ```
 #[inline]
 pub fn string<'a>(arena: &'a Bump, value: &str) -> DataValue<'a> {
     DataValue::String(arena.alloc_str(value))
 }
 
-/// Creates an array DataValue (requires an arena)
+/// Creates an array DataValue
+///
+/// This function allocates the array elements in the provided arena and returns
+/// a DataValue that references these elements.
+///
+/// # Arguments
+///
+/// * `arena` - The arena allocator to store the array
+/// * `values` - A vector of DataValue elements to include in the array
+///
+/// # Returns
+///
+/// A DataValue representing a JSON array.
+///
+/// # Example
+///
+/// ```
+/// # use datavalue_rs::{helpers, Bump};
+/// let arena = Bump::new();
+///
+/// // Create an array of primitive values
+/// let arr = helpers::array(&arena, vec![
+///     helpers::int(1),
+///     helpers::int(2),
+///     helpers::int(3),
+/// ]);
+///
+/// assert!(arr.is_array());
+/// let elements = arr.as_array().unwrap();
+/// assert_eq!(elements.len(), 3);
+/// assert_eq!(elements[0].as_i64(), Some(1));
+///
+/// // Create an array with mixed types
+/// let mixed = helpers::array(&arena, vec![
+///     helpers::boolean(true),
+///     helpers::string(&arena, "hello"),
+///     helpers::float(3.14),
+/// ]);
+///
+/// assert_eq!(mixed.as_array().unwrap().len(), 3);
+/// ```
 #[inline]
 pub fn array<'a>(arena: &'a Bump, values: Vec<DataValue<'a>>) -> DataValue<'a> {
     let elements_slice = arena.alloc_slice_clone(&values);
     DataValue::Array(elements_slice)
 }
 
-/// Creates an object DataValue (requires an arena)
+/// Creates an object DataValue
+///
+/// This function allocates the object entries in the provided arena and returns
+/// a DataValue that references these entries.
+///
+/// # Arguments
+///
+/// * `arena` - The arena allocator to store the object
+/// * `entries` - A vector of key-value pairs to include in the object
+///
+/// # Returns
+///
+/// A DataValue representing a JSON object.
+///
+/// # Note
+///
+/// The keys in the entries should already be allocated in the arena.
+/// This is different from serde_json's behavior, where keys are owned strings.
+///
+/// # Example
+///
+/// ```
+/// # use datavalue_rs::{helpers, Bump};
+/// let arena = Bump::new();
+///
+/// // Create a simple object
+/// let obj = helpers::object(&arena, vec![
+///     (arena.alloc_str("name"), helpers::string(&arena, "John")),
+///     (arena.alloc_str("age"), helpers::int(30)),
+///     (arena.alloc_str("is_admin"), helpers::boolean(false)),
+/// ]);
+///
+/// assert!(obj.is_object());
+/// assert!(obj.contains_key("name"));
+/// assert_eq!(obj["name"].as_str(), Some("John"));
+/// assert_eq!(obj["age"].as_i64(), Some(30));
+/// ```
 #[inline]
 pub fn object<'a>(arena: &'a Bump, entries: Vec<(&'a str, DataValue<'a>)>) -> DataValue<'a> {
     let entries_slice = arena.alloc_slice_clone(&entries);

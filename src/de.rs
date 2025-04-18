@@ -1,3 +1,8 @@
+//! Deserialization functionality for DataValue
+//!
+//! This module provides functions to deserialize JSON strings into DataValue instances
+//! and to convert serde_json::Value structures to DataValue.
+
 use crate::datavalue::{DataValue, Number};
 use crate::error::{Error, Result};
 use bumpalo::Bump;
@@ -8,6 +13,27 @@ use std::io::Read;
 ///
 /// This function uses serde_json to parse the JSON string, then converts
 /// the resulting serde_json::Value into a DataValue.
+///
+/// # Arguments
+///
+/// * `arena` - The arena allocator to store strings, arrays, and objects
+/// * `s` - The JSON string to parse
+///
+/// # Returns
+///
+/// Result containing the parsed DataValue or an error
+///
+/// # Example
+///
+/// ```
+/// # use datavalue_rs::{DataValue, Bump, from_str};
+/// let arena = Bump::new();
+/// let json = r#"{"name": "John", "age": 30}"#;
+///
+/// let value = from_str(&arena, json).unwrap();
+/// assert_eq!(value["name"].as_str(), Some("John"));
+/// assert_eq!(value["age"].as_i64(), Some(30));
+/// ```
 pub fn from_str<'a>(arena: &'a Bump, s: &str) -> Result<DataValue<'a>> {
     // Parse the string using serde_json
     let json_value: serde_json::Value = serde_json::from_str(s)?;
@@ -20,6 +46,34 @@ pub fn from_str<'a>(arena: &'a Bump, s: &str) -> Result<DataValue<'a>> {
 ///
 /// This function recursively converts a serde_json::Value into a DataValue,
 /// allocating strings, arrays, and objects in the provided arena.
+///
+/// # Arguments
+///
+/// * `arena` - The arena allocator to store strings, arrays, and objects
+/// * `json` - The serde_json::Value to convert
+///
+/// # Returns
+///
+/// Result containing the converted DataValue or an error
+///
+/// # Example
+///
+/// ```
+/// # use datavalue_rs::{DataValue, Bump, from_json};
+/// # use serde_json::json;
+/// let arena = Bump::new();
+///
+/// // Create a serde_json::Value
+/// let json_value = json!({
+///     "name": "John",
+///     "age": 30,
+///     "hobbies": ["reading", "coding"]
+/// });
+///
+/// let value = from_json(&arena, &json_value).unwrap();
+/// assert_eq!(value["name"].as_str(), Some("John"));
+/// assert_eq!(value["hobbies"][0].as_str(), Some("reading"));
+/// ```
 pub fn from_json<'a>(arena: &'a Bump, json: &serde_json::Value) -> Result<DataValue<'a>> {
     match json {
         serde_json::Value::Null => Ok(DataValue::Null),
@@ -71,11 +125,59 @@ pub fn from_json<'a>(arena: &'a Bump, json: &serde_json::Value) -> Result<DataVa
 
 impl<'a> DataValue<'a> {
     /// Parse JSON string into DataValue
+    ///
+    /// Deserializes a JSON string into a DataValue using the provided arena allocator.
+    ///
+    /// # Arguments
+    ///
+    /// * `arena` - The arena allocator to store strings, arrays, and objects
+    /// * `s` - The JSON string to parse
+    ///
+    /// # Returns
+    ///
+    /// Result containing the parsed DataValue or an error
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use datavalue_rs::{DataValue, Bump};
+    /// let arena = Bump::new();
+    /// let json = r#"{"name": "John", "age": 30}"#;
+    ///
+    /// let value = DataValue::from_str(&arena, json).unwrap();
+    /// assert_eq!(value["name"].as_str(), Some("John"));
+    /// ```
     pub fn from_str(arena: &'a Bump, s: &str) -> Result<Self> {
         from_str(arena, s)
     }
 
     /// Parse JSON from reader
+    ///
+    /// Reads JSON data from an io::Read source and parses it into a DataValue.
+    ///
+    /// # Arguments
+    ///
+    /// * `arena` - The arena allocator to store strings, arrays, and objects
+    /// * `reader` - The reader to read JSON data from
+    ///
+    /// # Returns
+    ///
+    /// Result containing the parsed DataValue or an error
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use datavalue_rs::{DataValue, Bump};
+    /// # use std::io::Cursor;
+    /// let arena = Bump::new();
+    ///
+    /// // Create a reader from a string
+    /// let json = r#"{"name": "John", "age": 30}"#;
+    /// let reader = Cursor::new(json);
+    ///
+    /// let value = DataValue::from_reader(&arena, reader).unwrap();
+    /// assert_eq!(value["name"].as_str(), Some("John"));
+    /// ```
     pub fn from_reader<R: Read>(arena: &'a Bump, mut reader: R) -> Result<Self> {
         let mut buffer = String::new();
         reader.read_to_string(&mut buffer).map_err(Error::from)?;
@@ -83,6 +185,34 @@ impl<'a> DataValue<'a> {
     }
 
     /// Parse JSON from byte slice
+    ///
+    /// Parses a byte slice containing UTF-8 encoded JSON data into a DataValue.
+    ///
+    /// # Arguments
+    ///
+    /// * `arena` - The arena allocator to store strings, arrays, and objects
+    /// * `v` - The byte slice containing JSON data
+    ///
+    /// # Returns
+    ///
+    /// Result containing the parsed DataValue or an error
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the byte slice is not valid UTF-8 or contains invalid JSON.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use datavalue_rs::{DataValue, Bump};
+    /// let arena = Bump::new();
+    ///
+    /// // JSON data as bytes
+    /// let json_bytes = br#"{"name": "John", "age": 30}"#;
+    ///
+    /// let value = DataValue::from_slice(&arena, json_bytes).unwrap();
+    /// assert_eq!(value["name"].as_str(), Some("John"));
+    /// ```
     pub fn from_slice(arena: &'a Bump, v: &[u8]) -> Result<Self> {
         let s =
             std::str::from_utf8(v).map_err(|e| Error::syntax(format!("Invalid UTF-8: {}", e)))?;
@@ -90,6 +220,35 @@ impl<'a> DataValue<'a> {
     }
 
     /// Convert from serde_json::Value
+    ///
+    /// Converts a serde_json::Value into a DataValue, allocating strings, arrays,
+    /// and objects in the provided arena.
+    ///
+    /// # Arguments
+    ///
+    /// * `arena` - The arena allocator to store strings, arrays, and objects
+    /// * `json` - The serde_json::Value to convert
+    ///
+    /// # Returns
+    ///
+    /// Result containing the converted DataValue or an error
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use datavalue_rs::{DataValue, Bump};
+    /// # use serde_json::json;
+    /// let arena = Bump::new();
+    ///
+    /// // Create a serde_json::Value
+    /// let json_value = json!({
+    ///     "name": "John",
+    ///     "age": 30
+    /// });
+    ///
+    /// let value = DataValue::from_json(&arena, &json_value).unwrap();
+    /// assert_eq!(value["name"].as_str(), Some("John"));
+    /// ```
     pub fn from_json(arena: &'a Bump, json: &serde_json::Value) -> Result<Self> {
         from_json(arena, json)
     }
@@ -100,6 +259,11 @@ impl<'de, 'a> serde::Deserialize<'de> for DataValue<'a>
 where
     'de: 'a,
 {
+    /// Deserialize a DataValue from a serde Deserializer
+    ///
+    /// This implementation creates a leaked arena for DataValue allocation,
+    /// which may cause memory leaks if used repeatedly. For most cases,
+    /// prefer using from_str or from_json with an explicitly managed arena.
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
         D: Deserializer<'de>,

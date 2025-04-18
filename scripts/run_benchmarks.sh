@@ -3,6 +3,7 @@
 
 # Create results directory if it doesn't exist
 mkdir -p scripts/benchmark_results
+rm -rf scripts/benchmark_results/*
 
 # Run the benchmarks and capture the output
 echo "Running benchmarks..."
