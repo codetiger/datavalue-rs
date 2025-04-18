@@ -1,6 +1,6 @@
 [package]
 name = "datavalue-rs"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 description = "High-performance Arena-based alternative to serde_json::Value"
 license = "MIT"
