@@ -1,6 +1,6 @@
 # DataValue vs serde_json::Value Benchmark Summary
 
-Generated on: Sat Apr 19 08:41:06 IST 2025
+Generated on: Sat Apr 19 09:22:45 IST 2025
 
 ## Results
 
@@ -8,11 +8,11 @@ Below is a comparison of performance between `DataValue` and `serde_json::Value`
 
 | Operation | serde_json::Value (ns) | DataValue (ns) | Improvement |
 |-----------|------------------------|----------------|-------------|
-| SimpleKeyAccess | 12.212 | 6.3176 | 48.00% |
-| DeepAccess | 23.433 | 12.215 | 47.00% |
-| ArrayIteration | 14.368 | 11.708 | 18.00% |
-| ContainsKey | 12.908 | 8.2571 | 36.00% |
-| ComplexProcessing | 2.1710 | 1.1973 | 44.00% |
+| SimpleKeyAccess | 12.066 | 6.3075 | 47.00% |
+| DeepAccess | 23.330 | 12.163 | 47.00% |
+| ArrayIteration | 14.434 | 11.694 | 18.00% |
+| ContainsKey | 12.869 | 8.2649 | 35.00% |
+| ComplexProcessing | 2.1703 | 1.1940 | 44.00% |
 
 ## Performance Analysis
 
