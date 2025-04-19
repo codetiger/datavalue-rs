@@ -9,7 +9,7 @@
 //! - Complex value constructors (`string()`, `array()`, `object()`) that require an arena allocator
 
 use crate::{
-    datavalue::{DataValue, Number},
+    datavalue::{DataValue, DataValueType, Number},
     Error, Result,
 };
 use bumpalo::Bump;
@@ -304,6 +304,37 @@ pub fn datetime<'a>(value: &str) -> Result<DataValue<'a>> {
         })
         .map_err(|e| Error::custom(e.to_string()))
         .map(DataValue::DateTime)
+}
+
+/// Returns the type of a DataValue
+///
+/// This is a convenience function that calls the `get_type` method on a DataValue.
+///
+/// # Arguments
+///
+/// * `value` - The DataValue to get the type of
+///
+/// # Returns
+///
+/// The type of the DataValue.
+///
+/// # Example
+///
+/// ```
+/// # use datavalue_rs::{helpers, DataValueType, Bump};
+/// # let arena = Bump::new();
+/// let null_val = helpers::null();
+/// assert_eq!(helpers::value_type(&null_val), DataValueType::Null);
+///
+/// let str_val = helpers::string(&arena, "hello");
+/// assert_eq!(helpers::value_type(&str_val), DataValueType::String);
+///
+/// let int_val = helpers::int(42);
+/// assert_eq!(helpers::value_type(&int_val), DataValueType::Integer);
+/// ```
+#[inline]
+pub fn value_type<'a>(value: &DataValue<'a>) -> DataValueType {
+    value.get_type()
 }
 
 #[cfg(test)]

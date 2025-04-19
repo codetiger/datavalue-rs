@@ -48,6 +48,42 @@ pub enum DataValue<'a> {
     Duration(Duration),
 }
 
+/// Represents the type of a DataValue
+///
+/// # Example
+///
+/// ```
+/// # use datavalue_rs::{DataValue, DataValueType, helpers};
+/// # use chrono::Utc;
+/// 
+/// // Check types of different values
+/// assert_eq!(helpers::null().get_type(), DataValueType::Null);
+/// assert_eq!(helpers::boolean(true).get_type(), DataValueType::Bool);
+/// assert_eq!(helpers::int(42).get_type(), DataValueType::Integer);
+/// assert_eq!(helpers::float(3.14).get_type(), DataValueType::Float);
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DataValueType {
+    /// Null type
+    Null,
+    /// Boolean type
+    Bool,
+    /// Integer number type
+    Integer,
+    /// Float number type
+    Float,
+    /// String type
+    String,
+    /// Array type
+    Array,
+    /// Object type
+    Object,
+    /// DateTime type
+    DateTime,
+    /// Duration type
+    Duration,
+}
+
 /// Represents a JSON number, either an integer or a floating point value.
 ///
 /// This type allows for efficient storage of both integer and floating-point values
@@ -77,6 +113,37 @@ pub enum Number {
 }
 
 impl<'a> DataValue<'a> {
+    /// Returns the type of this DataValue
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use datavalue_rs::{DataValue, DataValueType, Bump, helpers};
+    /// # let arena = Bump::new();
+    /// 
+    /// let null_val = helpers::null();
+    /// assert_eq!(null_val.get_type(), DataValueType::Null);
+    /// 
+    /// let str_val = helpers::string(&arena, "hello");
+    /// assert_eq!(str_val.get_type(), DataValueType::String);
+    /// 
+    /// let int_val = helpers::int(42);
+    /// assert_eq!(int_val.get_type(), DataValueType::Integer);
+    /// ```
+    pub fn get_type(&self) -> DataValueType {
+        match self {
+            DataValue::Null => DataValueType::Null,
+            DataValue::Bool(_) => DataValueType::Bool,
+            DataValue::Number(Number::Integer(_)) => DataValueType::Integer,
+            DataValue::Number(Number::Float(_)) => DataValueType::Float,
+            DataValue::String(_) => DataValueType::String,
+            DataValue::Array(_) => DataValueType::Array,
+            DataValue::Object(_) => DataValueType::Object,
+            DataValue::DateTime(_) => DataValueType::DateTime,
+            DataValue::Duration(_) => DataValueType::Duration,
+        }
+    }
+
     /// Returns the boolean value if this DataValue is a boolean, otherwise None.
     ///
     /// # Example
@@ -437,5 +504,41 @@ impl<'a> Index<usize> for DataValue<'a> {
     fn index(&self, index: usize) -> &Self::Output {
         self.get_index(index)
             .unwrap_or_else(|| panic!("no element at index `{}`", index))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::helpers;
+    use bumpalo::Bump;
+
+    #[test]
+    fn test_get_type() {
+        // Test that get_type returns the correct type for each DataValue variant
+        assert_eq!(DataValue::Null.get_type(), DataValueType::Null);
+        assert_eq!(DataValue::Bool(true).get_type(), DataValueType::Bool);
+        assert_eq!(DataValue::Number(Number::Integer(42)).get_type(), DataValueType::Integer);
+        assert_eq!(DataValue::Number(Number::Float(3.14)).get_type(), DataValueType::Float);
+        
+        // For variants that require allocation, we'll use a Bump arena
+        let arena = Bump::new();
+        
+        let string_val = DataValue::String(arena.alloc_str("hello"));
+        assert_eq!(string_val.get_type(), DataValueType::String);
+        
+        // For array, use helpers which handle arena allocation correctly
+        let array_val = helpers::array(&arena, vec![DataValue::Null]);
+        assert_eq!(array_val.get_type(), DataValueType::Array);
+        
+        // For object, use helpers which handle arena allocation correctly
+        let object_val = helpers::object(&arena, vec![(arena.alloc_str("key"), DataValue::Null)]);
+        assert_eq!(object_val.get_type(), DataValueType::Object);
+        
+        let dt_val = DataValue::DateTime(Utc::now());
+        assert_eq!(dt_val.get_type(), DataValueType::DateTime);
+        
+        let dur_val = DataValue::Duration(Duration::seconds(10));
+        assert_eq!(dur_val.get_type(), DataValueType::Duration);
     }
 }

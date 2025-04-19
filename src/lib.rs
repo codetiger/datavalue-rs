@@ -36,7 +36,7 @@ mod ser;
 
 // Re-export key types and functions for easy access
 pub use bumpalo::Bump;
-pub use datavalue::{DataValue, Number};
+pub use datavalue::{DataValue, DataValueType, Number};
 pub use error::{Error, Result};
 pub use helpers::*;
 
@@ -52,6 +52,7 @@ pub mod bumpalo {
 /// This allows code written for serde_json to be easily adapted for datavalue-rs.
 pub mod json {
     pub use super::datavalue::DataValue as Value;
+    pub use super::datavalue::DataValueType;
     pub use super::error::{Error, Result};
     pub use super::helpers::*;
     pub use super::{from_json, from_str, to_string, to_string_pretty};
