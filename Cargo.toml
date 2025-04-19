@@ -13,6 +13,7 @@ categories = ["data-structures", "parsing", "memory-management"]
 bumpalo = "3.17.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.140"
+chrono = "0.4"
 
 [dev-dependencies]
 criterion = "0.5"

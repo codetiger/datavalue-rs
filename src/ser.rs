@@ -110,6 +110,8 @@ fn to_string_pretty_internal(value: &DataValue<'_>, indent: usize, output: &mut 
             output.push_str(&indent_str);
             output.push('}');
         }
+        DataValue::DateTime(dt) => output.push_str(&dt.to_rfc3339()),
+        DataValue::Duration(dur) => output.push_str(&dur.to_string()),
     }
 }
 
@@ -141,6 +143,8 @@ impl Serialize for DataValue<'_> {
                 }
                 map.end()
             }
+            DataValue::DateTime(dt) => serializer.serialize_str(&dt.to_rfc3339()),
+            DataValue::Duration(dur) => serializer.serialize_str(&dur.to_string()),
         }
     }
 }

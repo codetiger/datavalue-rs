@@ -3,6 +3,7 @@
 //! This module defines the primary `DataValue` enum and related types,
 //! which serve as an arena-based equivalent to `serde_json::Value`.
 
+use chrono::{DateTime, Duration, Utc};
 use std::fmt;
 use std::ops::Index;
 
@@ -41,6 +42,10 @@ pub enum DataValue<'a> {
     Array(&'a [DataValue<'a>]),
     /// Represents a JSON object, containing key-value pairs.
     Object(&'a [(&'a str, DataValue<'a>)]),
+    /// Represents a JSON date-time value, stored as a reference to a string in the arena.
+    DateTime(DateTime<Utc>),
+    /// Represents a JSON duration value, stored as a reference to a string in the arena.
+    Duration(Duration),
 }
 
 /// Represents a JSON number, either an integer or a floating point value.
@@ -218,6 +223,44 @@ impl<'a> DataValue<'a> {
         }
     }
 
+    /// Returns a reference to the date-time value if this DataValue is a date-time, otherwise None.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use datavalue_rs::{DataValue};
+    /// # use chrono::{DateTime, Utc};
+    /// let dt = Utc::now();
+    /// let dt_val = DataValue::DateTime(dt);
+    /// assert!(dt_val.as_datetime().is_some());
+    /// ```
+    ///
+    pub fn as_datetime(&self) -> Option<DateTime<Utc>> {
+        match self {
+            DataValue::DateTime(dt) => Some(*dt),
+            _ => None,
+        }
+    }
+
+    /// Returns a reference to the duration value if this DataValue is a duration, otherwise None.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use datavalue_rs::{DataValue};
+    /// # use chrono::Duration;
+    /// let dur = Duration::seconds(10);
+    /// let dur_val = DataValue::Duration(dur);
+    /// assert_eq!(dur_val.as_duration(), Some(Duration::seconds(10)));
+    /// ```
+    ///
+    pub fn as_duration(&self) -> Option<Duration> {
+        match self {
+            DataValue::Duration(dur) => Some(*dur),
+            _ => None,
+        }
+    }
+
     /// Gets a reference to the DataValue associated with the given key if this DataValue is an object.
     ///
     /// # Example
@@ -334,6 +377,8 @@ impl fmt::Display for DataValue<'_> {
                 }
                 write!(f, "}}")
             }
+            DataValue::Duration(dur) => write!(f, "{}", dur),
+            DataValue::DateTime(dt) => write!(f, "{}", dt),
         }
     }
 }

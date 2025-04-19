@@ -8,8 +8,12 @@
 //! - Simple value constructors (`null()`, `boolean()`, `int()`, `float()`) that don't require an arena
 //! - Complex value constructors (`string()`, `array()`, `object()`) that require an arena allocator
 
-use crate::datavalue::{DataValue, Number};
+use crate::{
+    datavalue::{DataValue, Number},
+    Error, Result,
+};
 use bumpalo::Bump;
+use chrono::{DateTime, Duration, Utc};
 
 /// Creates a null DataValue
 ///
@@ -215,6 +219,91 @@ pub fn array<'a>(arena: &'a Bump, values: Vec<DataValue<'a>>) -> DataValue<'a> {
 pub fn object<'a>(arena: &'a Bump, entries: Vec<(&'a str, DataValue<'a>)>) -> DataValue<'a> {
     let entries_slice = arena.alloc_slice_clone(&entries);
     DataValue::Object(entries_slice)
+}
+
+/// Creates a datetime DataValue representing the current date and time
+///
+/// This function returns a DataValue representing the current date and time
+/// in UTC timezone.
+///
+/// # Returns   
+///
+/// A DataValue representing a JSON datetime.
+///
+/// # Example
+///
+/// ```
+/// # use datavalue_rs::helpers;
+/// # use chrono::Utc;
+/// let now = helpers::datetime_now();
+/// assert!(now.as_datetime().is_some());
+/// ```
+#[inline]
+pub fn datetime_now() -> DataValue<'static> {
+    let dt = Utc::now();
+    DataValue::DateTime(dt)
+}
+
+/// Creates a duration DataValue
+///
+/// This function returns a DataValue representing a duration in seconds.
+///
+/// # Returns
+///
+/// A DataValue representing a JSON duration.
+///
+/// # Example
+///
+/// ```
+/// # use datavalue_rs::helpers;
+/// # use chrono::Duration;
+/// let duration_value = helpers::duration(10);
+/// assert_eq!(duration_value.as_duration(), Some(Duration::seconds(10)));
+/// ```
+#[inline]
+pub fn duration(value: i64) -> DataValue<'static> {
+    let dur = Duration::seconds(value);
+    DataValue::Duration(dur)
+}
+
+/// Creates a datetime DataValue from a string
+///
+/// This function parses a datetime string in RFC3339 format and returns a DataValue
+/// representing the datetime.
+///
+/// # Arguments
+///
+/// * `value` - The datetime string to parse
+///
+/// # Returns
+///
+/// A Result containing a DataValue representing a JSON datetime, or an Error if parsing fails.
+///
+/// # Example
+///
+/// ```
+/// # use datavalue_rs::helpers;
+/// # use chrono::{DateTime, Utc};
+/// let datetime_value = helpers::datetime("2021-01-01T00:00:00Z").unwrap();
+/// assert!(datetime_value.as_datetime().is_some());
+/// let dt: DateTime<Utc> = "2021-01-01T00:00:00Z".parse().unwrap();
+/// assert_eq!(datetime_value.as_datetime(), Some(dt));
+/// ```
+#[inline]
+pub fn datetime<'a>(value: &str) -> Result<DataValue<'a>> {
+    DateTime::parse_from_rfc3339(value)
+        .map(|dt| dt.with_timezone(&Utc))
+        .or_else(|_| {
+            // Try as ISO8601 without time
+            chrono::NaiveDate::parse_from_str(value, "%Y-%m-%d")
+                .map(|date| date.and_hms_opt(0, 0, 0).unwrap().and_utc())
+        })
+        .or_else(|_| {
+            // Try other common formats (could add more as needed)
+            chrono::NaiveDateTime::parse_from_str(value, "%Y-%m-%d %H:%M:%S").map(|dt| dt.and_utc())
+        })
+        .map_err(|e| Error::custom(e.to_string()))
+        .map(DataValue::DateTime)
 }
 
 #[cfg(test)]
