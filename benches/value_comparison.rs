@@ -265,11 +265,11 @@ fn bench_complex_processing(c: &mut Criterion) {
                 let mut type_a_rating_sum = 0.0;
 
                 for record in records {
-                    if record["type"].as_str().unwrap() == "A" {
-                        if record["metadata"]["active"].as_bool().unwrap() {
-                            type_a_count += 1;
-                            type_a_rating_sum += record["metadata"]["rating"].as_f64().unwrap();
-                        }
+                    if record["type"].as_str().unwrap() == "A"
+                        && record["metadata"]["active"].as_bool().unwrap()
+                    {
+                        type_a_count += 1;
+                        type_a_rating_sum += record["metadata"]["rating"].as_f64().unwrap();
                     }
                 }
 
@@ -292,11 +292,11 @@ fn bench_complex_processing(c: &mut Criterion) {
             let mut type_a_rating_sum = 0.0;
 
             for record in records {
-                if record["type"].as_str().unwrap() == "A" {
-                    if record["metadata"]["active"].as_bool().unwrap() {
-                        type_a_count += 1;
-                        type_a_rating_sum += record["metadata"]["rating"].as_f64().unwrap();
-                    }
+                if record["type"].as_str().unwrap() == "A"
+                    && record["metadata"]["active"].as_bool().unwrap()
+                {
+                    type_a_count += 1;
+                    type_a_rating_sum += record["metadata"]["rating"].as_f64().unwrap();
                 }
             }
 

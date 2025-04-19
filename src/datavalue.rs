@@ -55,7 +55,7 @@ pub enum DataValue<'a> {
 /// ```
 /// # use datavalue_rs::{DataValue, DataValueType, helpers};
 /// # use chrono::Utc;
-/// 
+///
 /// // Check types of different values
 /// assert_eq!(helpers::null().get_type(), DataValueType::Null);
 /// assert_eq!(helpers::boolean(true).get_type(), DataValueType::Bool);
@@ -120,13 +120,13 @@ impl<'a> DataValue<'a> {
     /// ```
     /// # use datavalue_rs::{DataValue, DataValueType, Bump, helpers};
     /// # let arena = Bump::new();
-    /// 
+    ///
     /// let null_val = helpers::null();
     /// assert_eq!(null_val.get_type(), DataValueType::Null);
-    /// 
+    ///
     /// let str_val = helpers::string(&arena, "hello");
     /// assert_eq!(str_val.get_type(), DataValueType::String);
-    /// 
+    ///
     /// let int_val = helpers::int(42);
     /// assert_eq!(int_val.get_type(), DataValueType::Integer);
     /// ```
@@ -518,26 +518,32 @@ mod tests {
         // Test that get_type returns the correct type for each DataValue variant
         assert_eq!(DataValue::Null.get_type(), DataValueType::Null);
         assert_eq!(DataValue::Bool(true).get_type(), DataValueType::Bool);
-        assert_eq!(DataValue::Number(Number::Integer(42)).get_type(), DataValueType::Integer);
-        assert_eq!(DataValue::Number(Number::Float(3.14)).get_type(), DataValueType::Float);
-        
+        assert_eq!(
+            DataValue::Number(Number::Integer(42)).get_type(),
+            DataValueType::Integer
+        );
+        assert_eq!(
+            DataValue::Number(Number::Float(3.14)).get_type(),
+            DataValueType::Float
+        );
+
         // For variants that require allocation, we'll use a Bump arena
         let arena = Bump::new();
-        
+
         let string_val = DataValue::String(arena.alloc_str("hello"));
         assert_eq!(string_val.get_type(), DataValueType::String);
-        
+
         // For array, use helpers which handle arena allocation correctly
         let array_val = helpers::array(&arena, vec![DataValue::Null]);
         assert_eq!(array_val.get_type(), DataValueType::Array);
-        
+
         // For object, use helpers which handle arena allocation correctly
         let object_val = helpers::object(&arena, vec![(arena.alloc_str("key"), DataValue::Null)]);
         assert_eq!(object_val.get_type(), DataValueType::Object);
-        
+
         let dt_val = DataValue::DateTime(Utc::now());
         assert_eq!(dt_val.get_type(), DataValueType::DateTime);
-        
+
         let dur_val = DataValue::Duration(Duration::seconds(10));
         assert_eq!(dur_val.get_type(), DataValueType::Duration);
     }

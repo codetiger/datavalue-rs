@@ -333,7 +333,7 @@ pub fn datetime<'a>(value: &str) -> Result<DataValue<'a>> {
 /// assert_eq!(helpers::value_type(&int_val), DataValueType::Integer);
 /// ```
 #[inline]
-pub fn value_type<'a>(value: &DataValue<'a>) -> DataValueType {
+pub fn value_type(value: &DataValue<'_>) -> DataValueType {
     value.get_type()
 }
 

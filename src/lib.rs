@@ -10,6 +10,7 @@
  * - **Slices instead of Vectors**: Uses slice references to arena-allocated memory to reduce indirection
  * - **Zero-copy string handling**: Stores strings directly in the arena
  * - **API compatibility**: Similar API to `serde_json::Value` for easy adoption
+ * - **Operator overloading**: Supports standard operators directly on DataValue
  *
  * ## Usage
  *
@@ -24,6 +25,36 @@
  * println!("Name: {}", value["name"]);
  * println!("First hobby: {}", value["hobbies"][0]);
  * ```
+ *
+ * ## Operator Overloading
+ *
+ * DataValue supports operator overloading for basic operations:
+ *
+ * ```rust
+ * use datavalue_rs::helpers;
+ *
+ * // Create DataValue instances
+ * let num1 = helpers::int(5);
+ * let num2 = helpers::int(3);
+ *
+ * // Use operators directly on DataValue
+ * // Note that operators consume their operands, so clone if needed
+ * let sum = (num1.clone() + num2.clone()).unwrap();
+ * let product = (num1.clone() * num2.clone()).unwrap();
+ * let difference = (helpers::int(10) - helpers::int(4)).unwrap();
+ *
+ * assert_eq!(sum.as_i64(), Some(8));
+ * assert_eq!(product.as_i64(), Some(15));
+ * assert_eq!(difference.as_i64(), Some(6));
+ *
+ * // Comparison operators work directly too
+ * assert!(helpers::int(10) > helpers::int(5));
+ * assert!(helpers::int(3) < helpers::int(7));
+ * assert!(helpers::int(5) == helpers::int(5));
+ * ```
+ *
+ * Note that operations requiring memory allocation (like string concatenation) are not supported
+ * with direct operator overloading to avoid arena lifetime complications.
  */
 
 mod access;
@@ -32,6 +63,7 @@ mod datavalue;
 mod de;
 mod error;
 pub mod helpers;
+pub mod operations;
 mod ser;
 
 // Re-export key types and functions for easy access
